@@ -1,0 +1,88 @@
+---
+title: "Analyse des profils de multirésistance chez E.coli"
+author: "Rolly Mpoyi"
+date: '2023-03-31'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#Introduction
+
+Objectif de l'étude : Analyse du système français de surveillance de l'antibiorésistence en ville afin de mieux comprendre les phénomènes de multirésistances chez E.coli. Pour cela des outils d'association mining (notamment l'algorithme Apriori) et les réseaux de résistance seront reconstruits permettent une vision graphique des profils de multirésistance les plus significatifs par année d'étude et par région. 
+
+```{r ouvrir la session de travail}
+setwd("C:/Users/Rolly/Dropbox/Stage Rolly/Travaux R/EXTRACTION DATA CNAM")
+```
+
+
+```{r packages r à avoir}
+require(readxl) 
+require(tidyr)
+library(readxl)
+```
+
+
+
+#Nettoyage des données
+
+```{r lecture du fichier, warning=FALSE}
+EC18 <- "/Users/Rolly/Dropbox/Stage Rolly/Travaux R/EXTRACTION DATA CNAM/EC-2018.xlsx"
+EC_2018 <- read_excel(EC18)
+EC_2018
+```
+
+
+```{r seulement les urines, ne pas prendre en compte les C3G et FQ}
+unique(EC_2018$`type prelevement`) #afficher chaque type de prelevement
+not_urine <- which(!EC_2018$`type prelevement`== "URINES") #lignes qui ont des prelevement autres que l'urine
+EC_2018_urine <- EC_2018[-not_urine,] #suppression des lignes qui ne sont pas des prelevement d'urines
+unique(EC_2018_urine$`type prelevement`) #verification
+
+dim(EC_2018_urine) # dimension avec C3G et FQ
+C3G_FQ_suppr <- c(which(colnames(EC_2018_urine)== "C3G"),which(colnames(EC_2018_urine)== "FQ")) #vecteur des numeros de colonnes à supprimer
+EC_2018_clean <- EC_2018_urine[,-C3G_FQ_suppr] #supprimer les colonnes de C3G et FQ
+dim(EC_2018_clean) #dimension sans
+
+```
+
+
+```{r Enlever les antibiotiques qui n'ont pas ete testees}
+atb <- EC_2018_clean[,11:47] #data frame de tous les antibiotiques (garder la colonne id?)
+tot_test <- length(which(!is.na(atb))) #nombre total de tests
+dim(atb)
+str(atb) #on remarque quelques colonnes qui sont deja sous forme logique alors qu'il ne devrait pas y en avoir
+max_lignes <- nrow(atb)
+
+
+for (i in 0:ncol(atb)) { #pour chaque antibiotique
+  nombre_NA <- length(which(is.na(atb[,i]))) #calcule le nombre d'isolats non testes
+  if (nombre_NA == max_lignes){ #si le nombre de NA de la colonne est egale au nombre total d'isolats testes pour chaque antibiotique
+    print(i) #affiche les numeros des colonnes d'antibiotiques à supprimer
+    i <- i+1
+  }
+}
+
+cols_suppr <- c(5,11,13,32) #vecteur des numeros de colonnes a supprimer
+atb_suppr <- colnames(atb[,cols_suppr]) #nom des colonnes d'ATB a supprimrer
+atb_test <- atb[,-cols_suppr] #tout les antibitoiques testes
+dim(atb_test)
+tot_test2 <- length(which(!is.na(atb_test))) #verifier qu'il ya ait bien le meme nombre total de tests effectues pour les 2 dataframe
+
+AMC_suppr <- c(which(colnames(atb_test)== "AMC"),which(colnames(atb_test)=="AMC03")) #numeros de cols à supprimer
+atb_testf <- atb_test[,-AMC_suppr] #df avec AMC_urine seulement 
+dim(atb_testf)
+str(atb_testf) #toutes les colonnes sont des chaines de caractères 
+```
+
+```{r Interpretation de R/S/I}
+
+```
+
+
+```{r calculs de fréquence}
+
+```
+
