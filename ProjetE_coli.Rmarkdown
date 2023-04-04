@@ -21,6 +21,8 @@ setwd("C:/Users/Rolly/Dropbox/Stage Rolly/Travaux R/EXTRACTION DATA CNAM")
 ```{r packages r à avoir}
 require(readxl) 
 require(tidyr)
+require(dplyr)
+require(ggplot2)
 library(readxl)
 ```
 
@@ -78,11 +80,26 @@ str(atb_testf) #toutes les colonnes sont des chaines de caractères
 ```
 
 ```{r Interpretation de R/S/I}
-
+atb_testf_logi <- atb_testf #nouvelle data frame
+for (i in 1:ncol(atb_testf)) { #pour chaque antibiotique
+  resist <- which(atb_testf_logi[,i] == "R") #isolats resistants
+  sensible <- which(atb_testf_logi[,i] == "S") #isolats sensibles
+  intermed <- which(atb_testf_logi[,i] == "I") #isolats intermediares
+  atb_testf_logi[resist,i] <- "TRUE" #change le R en TRUE
+  atb_testf_logi[sensible,i] <- "FALSE" #change le S en FALSE
+  atb_testf_logi[intermed,i] <- "FALSE" #change le I en FALSE
+  i <- i+1
+  total = length(sensible) + length(resist) + length(intermed) #verifie le nombre d'isolats qui ont des valeurs attribues
+} 
+atb_testf_logi <- sapply(atb_testf_logi, as.logical) #met les valeurs sous forme logique 
+as.data.frame(atb_testf_logi)
+str(atb_testf_logi) #verification
 ```
 
 
 ```{r calculs de fréquence}
+# histogramme des 20 antibiotiques les + resistees
+atb_nomb_res <- summarise(atb_testf_logi, Somme_true =~sum(., na.rm = TRUE))
 
 ```
 
