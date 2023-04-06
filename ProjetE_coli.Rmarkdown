@@ -91,15 +91,120 @@ for (i in 1:ncol(atb_testf)) { #pour chaque antibiotique
   i <- i+1
   total = length(sensible) + length(resist) + length(intermed) #verifie le nombre d'isolats qui ont des valeurs attribues
 } 
-atb_testf_logi <- sapply(atb_testf_logi, as.logical) #met les valeurs sous forme logique 
-as.data.frame(atb_testf_logi)
+atb_testf_logi <- sapply(atb_testf_logi, as.logical) #donne les valeurs sous forme logique 
+atb_testf_logical <- as.data.frame(atb_testf_logi)
 str(atb_testf_logi) #verification
+str(atb_testf_logical)
 ```
 
 
 ```{r calculs de fréquence}
-# histogramme des 20 antibiotiques les + resistees
-atb_nomb_res <- summarise(atb_testf_logi, Somme_true =~sum(., na.rm = TRUE))
+# antibiogramme avec l'e-support (prevalence), le nombre d'isolats resistants, et le nombre d'isolats testees pour chaque antibiotique 
+anti_bio <- function(data, index) { 
+  #data = le data frame reunissant les donnees des antibiotiques 
+  #l'indice des colonnes d'antibiotiques à analyser
+  
+  #calcul prevalence de chaque ATB arrondi à 4 chiffres
+  eSupport <- round(sapply(data[,index], mean, na.rm = TRUE),4)
+  
+  #nombre d'isolats resistants a chaque ATB 
+  Nombre_Isolat <- trunc(sapply(data[,index], sum, na.rm = TRUE))
+  
+  #total_isolat testees  
+  matrix_noNa <- !is.na(data[,index])
+  matrix_noNa <- as.data.frame(matrix_noNa)
+  Total_Isolat_test <- sapply(matrix_noNa, sum)
+  
+  #creation de l'antibiogramme
+  abg <- rbind(eSupport, Nombre_Isolat, Total_Isolat_test)
+  abg
+} 
+antibiogramme <- anti_bio(atb_testf_logical, 1:31)
+
+#verification avec length(which == TRUE): 
+length(which(atb_testf_logical[,1] == TRUE)) #calcul pour le nombre de resistances
+length(which(atb_testf_logical[,1] == TRUE))/length(!is.na(atb_testf_logical[,1])) #calcul pour la prevalence (e-support)
+  
+```
+
+
+
+```{r profils d'ATB testees pour chaque isolat}
+atb_profil <- atb_testf 
+for (i in 1:ncol(atb_testf)) { #pour chaque antibiotique
+  resist <- which(atb_profil[,i] == "R") #isolats testees
+  sensible <- which(atb_profil[,i] == "S") #isolats sensibles
+  intermed <- which(atb_profil[,i] == "I") #isolats intermediares
+  NAs <- which(is.na(atb_profil[,i])) #isolats non testées
+  atb_profil[resist,i] <- "TRUE" #change le R en TRUE
+  atb_profil[sensible,i] <- "TRUE" #change le S en TRUE
+  atb_profil[intermed,i] <- "TRUE" #change le I en TRUE
+  atb_profil[NAs,i] <- "FALSE" #change NA en FALSE
+  i <- i+1
+  total = length(sensible) + length(resist) + length(intermed) + length(NAs) #verifie le nombre total d'isolats 
+}
+atb_profil #true = atb testee, false = atb non testee
+atb_profil_logi <- sapply(atb_profil, as.logical)
+atb_profil_logi <- as.data.frame(atb_profil_logi)
+str(atb_profil_logi)
+
+series_atb <- unique(atb_profil_logi[,])  #liste de differentes series d'ATB testés
+nrow(unique(atb_profil_logi)) #nombre de differentes series d'ATB testes 
+
+mdr_profil <- function (data, index){
+  #packages requis
+  require(stringr)
+  require(mgsub)
+  
+  z <- data[,index] #colonne des ATBs
+  
+  mdr_profil <- data.frame(Profil=rep("", dim(z)[1]), NombreATB=numeric(dim(z)[1])) #creation dune df pour stocker les profils
+  profil <- rep("", dim(z)[1]) #Initialise un caractere blanc aussi long que le nombre d'isolat dans le df
+  
+  
+  mdr_profil[,2] <- rowSums(z, na.rm=TRUE) #nombre de resistances aux ATBs pour chaque isolat
+  
+  for(i in 1:ncol(z)) { #pour chaque ATB
+    z[which(z[,i]==TRUE), i] <- as.character(colnames(z)[i]) #si teste, colle le nom de l'ATB dans la cellule
+    z[which(z[,i]==FALSE), i] <- as.character("") #si non teste, colle un espace blanc dans la cellule
+    
+    profil <- paste(profil, z[,i], sep = " ") #colle tous les cols d'ATB ensemble pour avoir une chaine de caracs de tous les ATB pour lesquels chaque isolat (chaque ligne) est resistant
+  }
+  profil <- trimws(profil, which="both") #suppr les espaces blancs
+  mdr_profil[,1] <- profil #stocker les profils de resistance
+  
+  mdr_profil #sortie; les profils de series d'ATBs
+}
+
+freq_atb <- mdr_profil(atb_profil_logi, 1:31)
+
+unique_freq_atb <- unique(freq_atb)
+
+multi_res <- as.data.frame(table(freq_atb$NombreATB)) #nombre de profils differents pour chaque nombre d'atb testes
+names(multi_res) <- c("NombreATBtestes", "Nombredeprofils")
+    
+multi_res
+# à finir/revoir (probleme au niveau de la somme)
+sum(with(unique_freq_atb, Profil == freq_atb[,1]))
+freq_profil <- as.data.frame(table(unique_freq_atb$Profil,count(unique_freq_atb$Profil)))
+names(freq_profil) <- c("Profil_unique", "Profils")
+```
+
+
+```{r descriptif}
+#nombre d'atbs testes min
+summary(atb_profil_logi)
+
+nombre_tests <- sapply(atb_profil_logi[,1:31], sum)
+
+moy_tests <- round(sapply(atb_profil_logi[,1:31], mean),3)
+descriptif <- rbind(nombre_tests, moy_tests)
+
+nb_min <- min(descriptif[1,]) #nombre min d'isolats testees
+atb_min <- which(descriptif[1,] == nb_min) #nom et numero de la colonne de l'antibiotique ayant effectue le moins de test
+
+nb_max <- max(descriptif[1,]) #nombre max d'isolats testees
+atb_max <- which(descriptif[1,] == nb_max) #nom et numero de la colonne de l'antibiotique ayant effectue le plus de test
 
 ```
 

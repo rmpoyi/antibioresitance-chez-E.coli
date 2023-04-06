@@ -197,7 +197,7 @@ unique(profil_res) #retourne les diff?rents profils de r?sistances
 #pour chaque nombre de r?sistances aux ATBs, calcule le nombre d'isolats et de ph?notypes uniques
 multi_res <- as.data.frame(table(profil_res$NombreRes)) #nombre de pattern de resistance et d'isolats 
 names(multi_res) <- c("NombreResATB", "NombreIsolats")
-
+    
 multi_res
 
 #nombre de pattern de res uniques parmi le nombre de resistances retenu
