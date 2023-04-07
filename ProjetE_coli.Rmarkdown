@@ -119,7 +119,7 @@ anti_bio <- function(data, index) {
   abg <- rbind(eSupport, Nombre_Isolat, Total_Isolat_test)
   abg
 } 
-antibiogramme <- anti_bio(atb_testf_logical, 1:31)
+antibiogramme <- anti_bio(atb_testf_logical, 1:31) #nombre d'isolat qui resiste à chaque antibiotique, prevalence
 
 #verification avec length(which == TRUE): 
 length(which(atb_testf_logical[,1] == TRUE)) #calcul pour le nombre de resistances
@@ -176,18 +176,12 @@ mdr_profil <- function (data, index){
   mdr_profil #sortie; les profils de series d'ATBs
 }
 
-freq_atb <- mdr_profil(atb_profil_logi, 1:31)
+freq_atb <- mdr_profil(atb_profil_logi, 1:31) #tout les profil d'atbs testees
 
-unique_freq_atb <- unique(freq_atb)
+unique_freq_atb <- unique(freq_atb) #profils differents d'atb testes
 
-multi_res <- as.data.frame(table(freq_atb$NombreATB)) #nombre de profils differents pour chaque nombre d'atb testes
-names(multi_res) <- c("NombreATBtestes", "Nombredeprofils")
-    
-multi_res
-# à finir/revoir (probleme au niveau de la somme)
-sum(with(unique_freq_atb, Profil == freq_atb[,1]))
-freq_profil <- as.data.frame(table(unique_freq_atb$Profil,count(unique_freq_atb$Profil)))
-names(freq_profil) <- c("Profil_unique", "Profils")
+feq_series_atb <- freq_atb %>% group_by_all() %>% count()
+
 ```
 
 
