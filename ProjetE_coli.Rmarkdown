@@ -22,8 +22,10 @@ setwd("C:/Users/Rolly/Dropbox/Stage Rolly/Travaux R/EXTRACTION DATA CNAM")
 require(readxl) 
 require(tidyr)
 require(dplyr)
+library(plyr)
 require(ggplot2)
 library(readxl)
+library(magrittr)
 ```
 
 
@@ -180,7 +182,14 @@ freq_atb <- mdr_profil(atb_profil_logi, 1:31) #tout les profil d'atbs testees
 
 unique_freq_atb <- unique(freq_atb) #profils differents d'atb testes
 
-feq_series_atb <- freq_atb %>% group_by_all() %>% count()
+feq_series_atb <- freq_atb %>% group_by_all() %>% count() %>% ungroup()
+
+#méthodo histogramme 
+
+
+top_n(feq_series_atb, n=2, n) %>%
+  ggplot(., aes(x=Profil, y= n)) + 
+    geom_col()
 
 ```
 
@@ -200,5 +209,67 @@ atb_min <- which(descriptif[1,] == nb_min) #nom et numero de la colonne de l'ant
 nb_max <- max(descriptif[1,]) #nombre max d'isolats testees
 atb_max <- which(descriptif[1,] == nb_max) #nom et numero de la colonne de l'antibiotique ayant effectue le plus de test
 
+```
+
+```{r profil resisances}
+res_profile <- function (data, index){
+  #packages requis
+  require(stringr)
+  require(mgsub)
+  
+  z <- data[,index] #colonne des ATBs
+  
+  res_profile <- data.frame(Profile=rep("", dim(z)[1]), NombreRes=numeric(dim(z)[1])) #cr?ation dune df pour stocker les profils
+  profile <- rep("", dim(z)[1]) #Initialise un caract?re blanc aussi long que le nombre d'isolat dans le df
+  
+  
+  res_profile[,2] <- rowSums(z, na.rm=TRUE) #nombre de resistances aux ATBs pour chaque isolat
+  
+  for(i in 1:ncol(z)) { #pour chaque ATB
+    z[which(z[,i]==TRUE), i] <- as.character(colnames(z)[i]) #si resistant, colle le nom de l'ATB dans la cellule
+    z[which(z[,i]==FALSE), i] <- as.character("") #si sensible, colle un espace blanc dans la cellule
+    z[is.na(z[,i]), i] <- as.character("") #ceux qui n'ont pas ?t? test?es, colle un espace blanc
+    profile <- paste(profile, z[,i], sep = " ") #colle tous les cols d'ATB ensemble pour avoir une chaine de caracs de tous les ATB pour lesquels chaque isolat (chaque ligne) est resistant
+  }
+  profile <- trimws(profile, which="both") #suppr les espaces blancs
+  res_profile[,1] <- profile #stocker les profils de resistance
+  
+  res_profile #sortie
+}
+```
+
+
+```{r  faire la même chose sur donnes 2019 (reprendre le code de Laura)}
+#Lecture du fichier de données pour 2019
+data2019<-read.csv(file="EC-2019.csv",sep=";")
+#Filtre pour ne garder que les prélèvements urinaires et enlever les colonnes ajoutées à la main par PRIMO
+data2019<-data2019[data2019$type.prelevement=="URINES",]
+data2019<-subset(data2019, select = -c(C3G,FQ) )
+#Dataframe ne comptant que les données d'antibiogramme, réordonnée dans l'ordre voulu
+atb2019<-data2019[,11:47]
+atb2019<-atb2019[,c("AKN","GEN","TOB","FOS","TEM","TIC","AMP","AMX","MEC","PIP","AMC","AMC_urine","AMC03","TCC","TZP","ERT","IMP","MEM","CN","CXM","FOX","CAZ","CFM","CRO","CTX","FEP","FUR","CIP","LEV","NOR","OFL","NAL","AZT","CS","TGC","TSU","TMP")]
+#Transformation pour n'avoir qu'une indicatrice de test d'antibiotique
+atb2019[atb2019 == ''] <- 0
+atb2019[atb2019 == 'S'] <- 1
+atb2019[atb2019 == 'I'] <- 1
+atb2019[atb2019 == 'R'] <- 1
+#Nombre de jeux d'antibiotiques uniques testés sur les isolats
+SeqATB2019<-unique(atb2019)
+dim(SeqATB2019)[1]
+#Ajout d'une colonne indiquant la fréquence de chaque jeu d'atb testé
+FreqATB2019<-atb2019 %>% group_by_all() %>% count() %>% ungroup()
+#Dix jeux d'antibiotiques testés le plus fréquemment
+TenTopATB2019<-top_n(FreqATB2019,10,n)
+#Proportion des isolats testés concernés par ces dix jeux d'antibiotiques
+sum(TenTopATB2019[,38])/dim(atb2019)[1]
+#Dataframe décrivant ces dix jeux, dans l'ordre de fréquence décroissante
+TenTopATB2019 <- TenTopATB2019[order(TenTopATB2019$n,decreasing=TRUE),]
+#Génération d'une table au format txt à partir de cette dataframe
+write.table(TenTopATB2019,sep = ",", quote = FALSE, row.names = F)
+#Possible de lire cette table dans Word ou Excel
+#Calcul de la fréquence de test de chaque atb
+atb2019N <- atb2019 %>% mutate_all(as.numeric)
+PropATB2019<-colSums(atb2019N)/dim(atb2019)[1]
+write.table(PropATB2019,sep = ",", quote = FALSE, row.names = F)
 ```
 

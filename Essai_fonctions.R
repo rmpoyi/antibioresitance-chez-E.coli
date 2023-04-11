@@ -188,9 +188,9 @@ mdr_profile <- function (data, index){
   
   mdr_profile #sortie
 }
-profil_res <- mdr_profile(matrix_logic,2:5)
+profile_res <- mdr_profile(matrix_logic,2:5)
 
-profil_res
+profile_res
 unique(profil_res) #retourne les diff?rents profils de r?sistances 
 
 #calculs ph?notype uniques, fr?q de ph?notypes 
