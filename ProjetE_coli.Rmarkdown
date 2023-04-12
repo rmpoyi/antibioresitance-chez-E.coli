@@ -107,7 +107,7 @@ anti_bio <- function(data, index) {
   #l'indice des colonnes d'antibiotiques à analyser
   
   #calcul prevalence de chaque ATB arrondi à 4 chiffres
-  eSupport <- round(sapply(data[,index], mean, na.rm = TRUE),4)
+  eSupport <- round(sapply(data[,index], mean, na.rm = TRUE),4)*100
   
   #nombre d'isolats resistants a chaque ATB 
   Nombre_Isolat <- trunc(sapply(data[,index], sum, na.rm = TRUE))
