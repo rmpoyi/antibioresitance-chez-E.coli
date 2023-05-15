@@ -54,7 +54,14 @@ dim(EC_2018_clean) #dimension sans
 
 
 ```{r Enlever les antibiotiques qui n'ont pas ete testees}
-atb <- EC_2018_clean[,11:47] #data frame de tous les antibiotiques (garder la colonne id?)
+data2018<-read.csv(file="EC-2018.csv",sep=";")
+data2018<-data2018[data2018$type.prelevement=="URINES",]
+data2018<-subset(data2018, select = -c(C3G,FQ) )
+atb<-data2018[,11:47]
+
+
+
+atb <- atb2018[,11:47] #data frame de tous les antibiotiques (garder la colonne id?)
 tot_test <- length(which(!is.na(atb))) #nombre total de tests
 dim(atb)
 str(atb) #on remarque quelques colonnes qui sont deja sous forme logique alors qu'il ne devrait pas y en avoir
@@ -230,8 +237,9 @@ res_profile <- function (data, index){
     z[which(z[,i]==FALSE), i] <- as.character("") #si sensible, colle un espace blanc dans la cellule
     z[is.na(z[,i]), i] <- as.character("") #ceux qui n'ont pas ?t? test?es, colle un espace blanc
     profile <- paste(profile, z[,i], sep = " ") #colle tous les cols d'ATB ensemble pour avoir une chaine de caracs de tous les ATB pour lesquels chaque isolat (chaque ligne) est resistant
+    profile <- trimws(profile, which="both")
   }
-  profile <- trimws(profile, which="both") #suppr les espaces blancs
+  #profile <- trimws(profile, which="both") #suppr les espaces blancs
   res_profile[,1] <- profile #stocker les profils de resistance
   
   res_profile #sortie
@@ -271,5 +279,32 @@ write.table(TenTopATB2019,sep = ",", quote = FALSE, row.names = F)
 atb2019N <- atb2019 %>% mutate_all(as.numeric)
 PropATB2019<-colSums(atb2019N)/dim(atb2019)[1]
 write.table(PropATB2019,sep = ",", quote = FALSE, row.names = F)
+```
+
+```{r res porifle avc NA}
+res_profile_na <- function (data, index){
+  #packages requis
+  require(stringr)
+  require(mgsub)
+  
+  z <- data[,index] #colonne des ATBs
+  
+  res_profile_na <- data.frame(Profile=rep("", dim(z)[1]), NombreRes=numeric(dim(z)[1])) #cr?ation dune df pour stocker les profils
+  profile <- rep("", dim(z)[1]) #Initialise un caract?re blanc aussi long que le nombre d'isolat dans le df
+  
+  
+  res_profile_na[,2] <- rowSums(z, na.rm=TRUE) #nombre de resistances aux ATBs pour chaque isolat
+  
+  for(i in 1:ncol(z)) { #pour chaque ATB
+    z[which(z[,i]==TRUE), i] <- as.character(colnames(z)[i]) #si resistant, colle le nom de l'ATB dans la cellule
+    z[which(z[,i]==FALSE), i] <- as.character("") #si sensible, colle un espace blanc dans la cellule
+    z[is.na(z[,i]), i] <- as.character("") #ceux qui n'ont pas ?t? test?es, colle un espace blanc
+    profile <- paste(profile, z[,i], sep = " ") #colle tous les cols d'ATB ensemble pour avoir une chaine de caracs de tous les ATB pour lesquels chaque isolat (chaque ligne) est resistant
+  }
+  profile <- trimws(profile, which="both") #suppr les espaces blancs
+  res_profile_na[,1] <- profile #stocker les profils de resistance
+  
+  res_profile_na #sortie
+}
 ```
 

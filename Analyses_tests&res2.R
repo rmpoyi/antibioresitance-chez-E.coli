@@ -1,6 +1,7 @@
 library(magrittr)
 library(plyr)
 library(dplyr)
+library(ggplot2)
 
 #Lecture du fichier de données pour 2018
 data2018<-read.csv(file="EC-2018.csv",sep=";")
@@ -144,9 +145,14 @@ for (i in 1:37) {
 }
 trendTest
 
-#analyses resistances 
+#analyses resistances 2018--------------------- 
 
-atb2018_res <- data2018[,11:47]
+data2018<-data2018[data2018$type.prelevement=="URINES",]
+
+atb2018_res <- data2018[,11:49]
+
+atb2018_res <- subset(atb2018_res, select = -c(TCC, CN, AZT, CS, TGC, C3G, FQ))
+
 
 atb2018_res[atb2018_res == ''] <- NA
 atb2018_res[atb2018_res == 'S'] <- FALSE
@@ -156,26 +162,29 @@ atb2018_res[atb2018_res == 'R'] <- TRUE
 
 atb2018_res_log <- atb2018_res %>% mutate_all(as.logical)  #forme logique pour pouvoir executer les fonctions
 str(atb2018_res_log)
-antibio_res <- anti_bio(atb2018_res_log,1:37)
+antibio_res <- anti_bio(atb2018_res_log,1:32)
 antibio_res <- as.data.frame(antibio_res)
 
 #calcul du nombre de res antibiotiques de chaque isolat
 
-atb2018_res_num <- data2018[,11:47]
+atb2018_res_num <- data2018[,11:49]
+atb2018_res_num <- subset(atb2018_res_num, select = -c(TCC, CN, AZT, CS, TGC, C3G, FQ))
+
 atb2018_res_num[atb2018_res_num == ""] <- NA
 atb2018_res_num[atb2018_res_num == "S"] <- 0
 atb2018_res_num[atb2018_res_num == "I"] <- 0
 atb2018_res_num[atb2018_res_num == "R"] <- 1
 
+
 FreqATBres2018<-atb2018_res_num %>% group_by_all() %>% count() %>% ungroup()
-TenTopATB2018res<-FreqATBres2018 %>%
+
+uniqfreqres2018 <- unique(FreqATBres2018)
+
+TenTopATB2018res<-uniqfreqres2018 %>%
   arrange(desc(n)) %>%
   slice_head(n=10)
 
 TenTopATB2018res <- TenTopATB2018res[order(TenTopATB2018res$n,decreasing=TRUE),]
-
-TenTopATB2018res[TenTopATB2018res == "TRUE"] <- 1
-TenTopATB2018res[TenTopATB2018res == "FALSE"] <- 0
 
 
 #montrer les atbs ayant le plus de souches testes resistantes 
@@ -192,16 +201,21 @@ top_mean_res_2018 %>%  #graphe top 10 resistances
 
 #distribution des resistances d'atb par isolats (a modifier)
 final_antibio_res_2018 %>% 
-  ggplot(., aes(x=row.names(.), y= eSupport)) + 
+  ggplot(., aes(reorder(row.names(.), -eSupport, sum), eSupport)) + 
   geom_col() +
-  labs(x = "Code de l'antibiotique", y = "Prevalence (%)", title = "Distribution de la prevalence des antibiotiques ayant des souches testees resistantes en 2018") +
-  guides(x = guide_axis(angle = 60))
+  labs(x = "Code de l'antibiotique", y = "Prevalence (%)", title = "Fréquence des résistances antibiotiques en 2018") +
+  guides(x = guide_axis(angle = 60))+
+  theme(axis.text = element_text(face = "bold"))
+ggsave("freq_res18.png")
 
 #profils de resistances
-tot_profils_res <- res_profile(atb2018_res_log, 1:37)
+tot_profils_res <- res_profile(atb2018_res_log, 1:32)
 uniq_profils_res <-unique(tot_profils_res)
 
+
 freq_profils_res <- tot_profils_res %>% group_by_all() %>% count() %>% ungroup()
+
+
 
 # changement de la colonne freq pour avoir un % du nb total isolats 
 
@@ -212,21 +226,29 @@ freq_profils_res_perc[,3] <- round(freq_profils_res[,3]/sum(freq_profils_res$n),
 top10_freq_profils_res <- top_n(freq_profils_res_perc, 10, n)
 sum(top10_freq_profils_res[,3]) #correspond à 70% des resistances 
 top10_freq_profils_res %>%  #graphe profil res
-  ggplot(., aes(x=Profile, y= n)) + 
+  ggplot(., aes(reorder(Profile, -n, sum), n)) + 
   geom_col() +
   labs(x = "Profils de resistance", y = "Frequence(%)", title = "Les 10 profils de resistances les plus frequents en 2018") +
-  guides(x = guide_axis(angle = 30))
+  guides(x = guide_axis(angle = 30)) +
+  theme(axis.text = element_text(face = "bold"))
+
+ggsave("top10res18.png")
 
 #distribution du nb d'atb presents dans les multiresitances
 
 freq_profils_res_perc %>%
   ggplot(., aes(x=NombreRes, y= n)) +
   geom_col() +
-  labs(x = "Nombre d'antibiotiques resistants", y = "Prevalence (%)", title = "Distribution du nombre d'antibiotiques present dans les multiresistances en 2018") 
+  labs(x = "Nombre de résistances", y = "Prevalence (%)", title = "Distribution du nombre de résistances antibiotiques en 2018") 
 
 # faire la même chose pour 2019, 2020, 2021 
 #2019--------------------------- 
-atb2019_res <- data2019[,11:47]
+data2019<-data2019[data2019$type.prelevement=="URINES",]
+
+atb2019_res <- data2019[,11:49]
+
+atb2019_res <- subset(atb2019_res, select = -c(TCC, CN, AZT, CS, TGC, C3G, FQ))
+
 
 atb2019_res[atb2019_res == ''] <- NA
 atb2019_res[atb2019_res == 'S'] <- FALSE
@@ -236,12 +258,30 @@ atb2019_res[atb2019_res == 'R'] <- TRUE
 
 atb2019_res_log <- atb2019_res %>% mutate_all(as.logical)  #forme logique pour pouvoir executer les fonctions
 str(atb2019_res_log)
-antibio_res_2019 <- anti_bio(atb2019_res_log,1:37)
+antibio_res_2019 <- anti_bio(atb2019_res_log,1:32)
 antibio_res_2019 <- as.data.frame(antibio_res_2019)
 
 #calcul du nombre de res antibiotiques de chaque isolat
 
-FreqATBres2019<-atb2019_res %>% group_by_all() %>% count() %>% ungroup()
+atb2019_res_num <- data2019[,11:49]
+atb2019_res_num <- subset(atb2019_res_num, select = -c(TCC, CN, AZT, CS, TGC, C3G, FQ))
+
+atb2019_res_num[atb2019_res_num == ""] <- NA
+atb2019_res_num[atb2019_res_num == "S"] <- 0
+atb2019_res_num[atb2019_res_num == "I"] <- 0
+atb2019_res_num[atb2019_res_num == "R"] <- 1
+
+
+FreqATBres2019<-atb2019_res_num %>% group_by_all() %>% count() %>% ungroup()
+
+uniqfreqres2019 <- unique(FreqATBres2019)
+
+TenTopATB2019res<-uniqfreqres2019 %>%
+  arrange(desc(n)) %>%
+  slice_head(n=10)
+
+TenTopATB2019res <- TenTopATB2019res[order(TenTopATB2019res$n,decreasing=TRUE),]
+
 
 #montrer les atbs ayant le plus de souches testes resistantes 
 
@@ -249,7 +289,7 @@ FreqATBres2019<-atb2019_res %>% group_by_all() %>% count() %>% ungroup()
 final_antibio_res_2019 <- as.data.frame(t(antibio_res_2019))
 top_mean_res_2019 <- top_n(final_antibio_res_2019, 10, eSupport) 
 
-top_mean_res_2019 %>%  #graphe top10 res
+top_mean_res_2019 %>%  #graphe top 10 resistances
   ggplot(., aes(x=row.names(.), y= eSupport)) + 
   geom_col() +
   labs(x = "Code de l'antibiotique", y = "Prevalence (%)", title = "Les 10 antibiotiques ayant la plus grande prevalence de souches testees resistantes en 2019") +
@@ -257,39 +297,52 @@ top_mean_res_2019 %>%  #graphe top10 res
 
 #distribution des resistances d'atb par isolats (a modifier)
 final_antibio_res_2019 %>% 
-  ggplot(., aes(x=row.names(.), y= eSupport)) + 
+  ggplot(., aes(reorder(row.names(.), -eSupport,sum), eSupport)) + 
   geom_col() +
-  labs(x = "Code de l'antibiotique", y = "Prevalence (%)", title = "Distribution de la prevalence des antibiotiques ayant des souches testees resistantes en 2019") +
-  guides(x = guide_axis(angle = 60))
+  labs(x = "Code de l'antibiotique", y = "Prevalence (%)", title = "Fréquence des résistances antibiotiques en 2019") +
+  guides(x = guide_axis(angle = 60))+
+  theme(axis.text = element_text(face = "bold"))
+ggsave("freq_res19.png")
 
 #profils de resistances
-tot_profils_res_2019 <- res_profile(atb2019_res_log, 1:37)
+tot_profils_res_2019 <- res_profile(atb2019_res_log, 1:32)
 uniq_profils_res_2019 <-unique(tot_profils_res_2019)
 
+
 freq_profils_res_2019 <- tot_profils_res_2019 %>% group_by_all() %>% count() %>% ungroup()
+
+
+
+# changement de la colonne freq pour avoir un % du nb total isolats 
 
 sum(freq_profils_res_2019$n)
 freq_profils_res_perc_2019 <- freq_profils_res_2019
 freq_profils_res_perc_2019[,3] <- round(freq_profils_res_2019[,3]/sum(freq_profils_res_2019$n),5)*100
 
-top10_freq_profils_res_perc_2019 <- top_n(freq_profils_res_perc_2019, 10, n)
-sum(top10_freq_profils_res_perc_2019[,3]) #correspond à ~62% des resistances 
-top10_freq_profils_res_perc_2019 %>%  #graphe profils de res les + frequents 
-  ggplot(., aes(x=Profile, y= n)) + 
-  geom_col() + 
-  labs(x = "Profils de resistance", y = "Prevalence (%)", title = "Les 10 profils de resistances les plus frequents en 2019") +
-  guides(x = guide_axis(angle = 30))
+top10_freq_profils_res_2019 <- top_n(freq_profils_res_perc_2019, 10, n)
+sum(top10_freq_profils_res_2019[,3]) #correspond à 70% des resistances 
+top10_freq_profils_res_2019 %>%  #graphe profil res
+  ggplot(., aes(reorder(Profile, -n, sum), n)) + 
+  geom_col() +
+  labs(x = "Profils de resistance", y = "Frequence(%)", title = "Les 10 profils de resistances les plus frequents en 2019") +
+  guides(x = guide_axis(angle = 30))+
+  theme(axis.text = element_text(face = "bold"))
+ggsave("top10res19.png")
 
 #distribution du nb d'atb presents dans les multiresitances
 
 freq_profils_res_perc_2019 %>%
   ggplot(., aes(x=NombreRes, y= n)) +
   geom_col() +
-  labs(x = "Nombre d'antibiotiques resistants", y = "Prevalence (%)", title = "Distribution du nombre d'antibiotiques present dans les multiresistances en 2019") 
+  labs(x = "Nombre de résistances", y = "Prevalence (%)", title = "Distribution du nombre de résistances antibiotiques en 2019")
 
 #2020-------------------------------------------------------
+data2020<-data2020[data2020$type.prelevement=="URINES",]
 
-atb2020_res <- data2020[,11:47]
+atb2020_res <- data2020[,11:49]
+
+atb2020_res <- subset(atb2020_res, select = -c(TCC, CN, AZT, CS, TGC, C3G, FQ))
+
 
 atb2020_res[atb2020_res == ''] <- NA
 atb2020_res[atb2020_res == 'S'] <- FALSE
@@ -299,8 +352,30 @@ atb2020_res[atb2020_res == 'R'] <- TRUE
 
 atb2020_res_log <- atb2020_res %>% mutate_all(as.logical)  #forme logique pour pouvoir executer les fonctions
 str(atb2020_res_log)
-antibio_res_2020 <- anti_bio(atb2020_res_log,1:37)
+antibio_res_2020 <- anti_bio(atb2020_res_log,1:32)
 antibio_res_2020 <- as.data.frame(antibio_res_2020)
+
+#calcul du nombre de res antibiotiques de chaque isolat
+
+atb2020_res_num <- data2020[,11:49]
+atb2020_res_num <- subset(atb2020_res_num, select = -c(TCC, CN, AZT, CS, TGC, C3G, FQ))
+
+atb2020_res_num[atb2020_res_num == ""] <- NA
+atb2020_res_num[atb2020_res_num == "S"] <- 0
+atb2020_res_num[atb2020_res_num == "I"] <- 0
+atb2020_res_num[atb2020_res_num == "R"] <- 1
+
+
+FreqATBres2020<-atb2020_res_num %>% group_by_all() %>% count() %>% ungroup()
+
+uniqfreqres2020 <- unique(FreqATBres2020)
+
+TenTopATB2020res<-uniqfreqres2020 %>%
+  arrange(desc(n)) %>%
+  slice_head(n=10)
+
+TenTopATB2020res <- TenTopATB2020res[order(TenTopATB2020res$n,decreasing=TRUE),]
+
 
 #montrer les atbs ayant le plus de souches testes resistantes 
 
@@ -308,7 +383,7 @@ antibio_res_2020 <- as.data.frame(antibio_res_2020)
 final_antibio_res_2020 <- as.data.frame(t(antibio_res_2020))
 top_mean_res_2020 <- top_n(final_antibio_res_2020, 10, eSupport) 
 
-top_mean_res_2020 %>%  #graphe top 10 res
+top_mean_res_2020 %>%  #graphe top 10 resistances
   ggplot(., aes(x=row.names(.), y= eSupport)) + 
   geom_col() +
   labs(x = "Code de l'antibiotique", y = "Prevalence (%)", title = "Les 10 antibiotiques ayant la plus grande prevalence de souches testees resistantes en 2020") +
@@ -316,38 +391,53 @@ top_mean_res_2020 %>%  #graphe top 10 res
 
 #distribution des resistances d'atb par isolats (a modifier)
 final_antibio_res_2020 %>% 
-  ggplot(., aes(x=row.names(.), y= eSupport)) + 
+  ggplot(., aes(reorder(row.names(.), -eSupport, sum), eSupport)) + 
   geom_col() +
-  labs(x = "Code de l'antibiotique", y = "Prevalence (%)", title = "Distribution de la prevalence des antibiotiques ayant des souches testees resistantes en 2020") +
-  guides(x = guide_axis(angle = 60))
+  labs(x = "Code de l'antibiotique", y = "Prevalence (%)", title = "Fréquence des résistances antibiotiques en 2020") +
+  guides(x = guide_axis(angle = 60))+
+  theme(axis.text = element_text(face = "bold"))
+ggsave("freq_res_20.png")
 
-
-tot_profils_res_2020 <- res_profile(atb2020_res_log, 1:37)
+#profils de resistances
+tot_profils_res_2020 <- res_profile(atb2020_res_log, 1:32)
 uniq_profils_res_2020 <-unique(tot_profils_res_2020)
+
 
 freq_profils_res_2020 <- tot_profils_res_2020 %>% group_by_all() %>% count() %>% ungroup()
 
+
+
+# changement de la colonne freq pour avoir un % du nb total isolats 
+
+sum(freq_profils_res_2020$n)
 freq_profils_res_perc_2020 <- freq_profils_res_2020
 freq_profils_res_perc_2020[,3] <- round(freq_profils_res_2020[,3]/sum(freq_profils_res_2020$n),5)*100
 
-top10_freq_profils_res_perc_2020 <- top_n(freq_profils_res_perc_2020, 10, n)
-sum(top10_freq_profils_res_perc_2020[,3]) #correspond à 62% des resistances 
-top10_freq_profils_res_perc_2020 %>%  #graphe top10 profils res
-  ggplot(., aes(x=Profile, y= n)) + 
-  geom_col() + 
-  labs(x = "Profils de resistance", y = "Prevalence (%)", title = "Les 10 profils de resistances les plus frequents en 2020") +
-  guides(x = guide_axis(angle = 30))
+top10_freq_profils_res_2020 <- top_n(freq_profils_res_perc_2020, 10, n)
+sum(top10_freq_profils_res_2020[,3]) #correspond à 70% des resistances 
+top10_freq_profils_res_2020 %>%  #graphe profil res
+  ggplot(., aes(reorder(Profile, -n, sum), n)) + 
+  geom_col() +
+  labs(x = "Profils de resistance", y = "Frequence(%)", title = "Les 10 profils de resistances les plus frequents en 2020") +
+  guides(x = guide_axis(angle = 30))+
+  theme(axis.text = element_text(face = "bold"))
+ggsave("top10res20.png")
 
 #distribution du nb d'atb presents dans les multiresitances
 
 freq_profils_res_perc_2020 %>%
   ggplot(., aes(x=NombreRes, y= n)) +
   geom_col() +
-  labs(x = "Nombre d'antibiotiques resistants", y = "Prevalence (%)", title = "Distribution du nombre d'antibiotiques present dans les multiresistances en 2020")
+  labs(x = "Nombre de résistances", y = "Prevalence (%)", title = "Distribution du nombre de résistances antibiotiques en 2020")
 
 #2021---------------------------
 
-atb2021_res <- data2021[,11:47]
+data2021<-data2021[data2021$type.prelevement=="URINES",]
+
+atb2021_res <- data2021[,11:49]
+
+atb2021_res <- subset(atb2021_res, select = -c(TCC, CN, AZT, CS, TGC, C3G, FQ))
+
 
 atb2021_res[atb2021_res == ''] <- NA
 atb2021_res[atb2021_res == 'S'] <- FALSE
@@ -357,8 +447,30 @@ atb2021_res[atb2021_res == 'R'] <- TRUE
 
 atb2021_res_log <- atb2021_res %>% mutate_all(as.logical)  #forme logique pour pouvoir executer les fonctions
 str(atb2021_res_log)
-antibio_res_2021 <- anti_bio(atb2021_res_log,1:37)
+antibio_res_2021 <- anti_bio(atb2021_res_log,1:32)
 antibio_res_2021 <- as.data.frame(antibio_res_2021)
+
+#calcul du nombre de res antibiotiques de chaque isolat
+
+atb2021_res_num <- data2021[,11:49]
+atb2021_res_num <- subset(atb2021_res_num, select = -c(TCC, CN, AZT, CS, TGC, C3G, FQ))
+
+atb2021_res_num[atb2021_res_num == ""] <- NA
+atb2021_res_num[atb2021_res_num == "S"] <- 0
+atb2021_res_num[atb2021_res_num == "I"] <- 0
+atb2021_res_num[atb2021_res_num == "R"] <- 1
+
+
+FreqATBres2021<-atb2021_res_num %>% group_by_all() %>% count() %>% ungroup()
+
+uniqfreqres2021 <- unique(FreqATBres2021)
+
+TenTopATB2021res<-uniqfreqres2021 %>%
+  arrange(desc(n)) %>%
+  slice_head(n=10)
+
+TenTopATB2021res <- TenTopATB2021res[order(TenTopATB2021res$n,decreasing=TRUE),]
+
 
 #montrer les atbs ayant le plus de souches testes resistantes 
 
@@ -366,7 +478,7 @@ antibio_res_2021 <- as.data.frame(antibio_res_2021)
 final_antibio_res_2021 <- as.data.frame(t(antibio_res_2021))
 top_mean_res_2021 <- top_n(final_antibio_res_2021, 10, eSupport) 
 
-top_mean_res_2021 %>%  #top 10 res
+top_mean_res_2021 %>%  #graphe top 10 resistances
   ggplot(., aes(x=row.names(.), y= eSupport)) + 
   geom_col() +
   labs(x = "Code de l'antibiotique", y = "Prevalence (%)", title = "Les 10 antibiotiques ayant la plus grande prevalence de souches testees resistantes en 2021") +
@@ -374,50 +486,64 @@ top_mean_res_2021 %>%  #top 10 res
 
 #distribution des resistances d'atb par isolats (a modifier)
 final_antibio_res_2021 %>% 
-  ggplot(., aes(x=row.names(.), y= eSupport)) + 
+  ggplot(., aes(reorder(row.names(.), -eSupport, sum), eSupport)) + 
   geom_col() +
-  labs(x = "Code de l'antibiotique", y = "Prevalence (%)", title = "Distribution de la prevalence des antibiotiques ayant des souches testees resistantes en 2021") +
-  guides(x = guide_axis(angle = 60))
+  labs(x = "Code de l'antibiotique", y = "Prevalence (%)", title = "Fréquence des résistances antibiotiques en 2021") +
+  guides(x = guide_axis(angle = 60))+
+  theme(axis.text = element_text(face = "bold"))
+ggsave("freq_res21.png")
 
-tot_profils_res_2021 <- res_profile(atb2021_res_log, 1:37)
+#profils de resistances
+tot_profils_res_2021 <- res_profile(atb2021_res_log, 1:32)
 uniq_profils_res_2021 <-unique(tot_profils_res_2021)
+
 
 freq_profils_res_2021 <- tot_profils_res_2021 %>% group_by_all() %>% count() %>% ungroup()
 
+
+
+# changement de la colonne freq pour avoir un % du nb total isolats 
+
+sum(freq_profils_res_2021$n)
 freq_profils_res_perc_2021 <- freq_profils_res_2021
 freq_profils_res_perc_2021[,3] <- round(freq_profils_res_2021[,3]/sum(freq_profils_res_2021$n),5)*100
 
-top10_freq_profils_res_perc_2021 <- top_n(freq_profils_res_perc_2021, 10, n)
-sum(top10_freq_profils_res_perc_2021[,3]) #correspond à 62% des resistances 
-top10_freq_profils_res_perc_2021 %>%  #top 10 profils res
-  ggplot(., aes(x=Profile, y= n)) + 
-  geom_col()  + 
-  labs(x = "Profils de resistance", y = "Prevalence (%)", title = "Les 10 profils de resistances les plus frequents en 2021") +
-  guides(x = guide_axis(angle = 30))
+top10_freq_profils_res_2021 <- top_n(freq_profils_res_perc_2021, 10, n)
+sum(top10_freq_profils_res_2021[,3]) #correspond à 70% des resistances 
+top10_freq_profils_res_2021 %>%  #graphe profil res
+  ggplot(., aes(reorder(Profile, -n, sum), n)) + 
+  geom_col() +
+  labs(x = "Profils de resistance", y = "Frequence(%)", title = "Les 10 profils de resistances les plus frequents en 2021") +
+  guides(x = guide_axis(angle = 30))+
+  theme(axis.text = element_text(face = "bold"))
+ggsave("top10res21.png")
 
 #distribution du nb d'atb presents dans les multiresitances
 
 freq_profils_res_perc_2021 %>%
   ggplot(., aes(x=NombreRes, y= n)) +
   geom_col() +
-  labs(x = "Nombre d'antibiotiques resistants", y = "Prevalence (%)", title = "Distribution du nombre d'antibiotiques present dans les multiresistances en 2021")
+  labs(x = "Nombre de résistances", y = "Prevalence (%)", title = "Distribution du nombre de résistances antibiotiques en 2021")
 
 #ecrire tout les data frames sur tableau excel----------------
 
-write.table(TenTopATB2018,sep = ",", quote = FALSE, row.names = F)
 
-write.table(TenTopATB2018res, sep = ",", quote = FALSE, row.names = F)
+write.table(top10_freq_profils_res, sep = ",", quote = FALSE, row.names = F)
 
-atb2018N <- atb2018 %>% mutate_all(as.numeric)
-PropATB2018<-colSums(atb2018N)/dim(atb2018)[1]
+write.table(final_antibio_res_2018, sep = ",", quote = FALSE, row.names = T)
 
-write.table(PropATB2018,sep = ",", quote = FALSE, row.names = F)
+write.table(top10_freq_profils_res_perc_2019, sep = ",", quote = FALSE, row.names = F)
+write.table(final_antibio_res_2019, sep = ",", quote = FALSE, row.names = T)
+
+write.table(top10_freq_profils_res_perc_2020, sep = ",", quote = FALSE, row.names = F)
+write.table(final_antibio_res_2020, sep = ",", quote = FALSE, row.names = T)
+
+write.table(top10_freq_profils_res_perc_2021, sep = ",", quote = FALSE, row.names = F)
+write.table(final_antibio_res_2021, sep = ",", quote = FALSE, row.names = T)
 
 #refaire les memes analyses en supprimant les ATB avec le moins de 10% de souches testees 
 
 atb_moins_10 <- c("TCC", "CN", "AZT", "CS", "TGC")
 
-#refaire les memes analyses pour les BLSE et une sans les BLSE
-
-BLSE <- c("AMC","AMC_urine", "AMC03", "TCC", "TZP")
+#refaire les memes analyses pour les BLSE et une sans les BLSE ---> voir script BLSE
 

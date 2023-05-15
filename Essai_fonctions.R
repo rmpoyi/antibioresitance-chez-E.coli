@@ -68,7 +68,7 @@ summary(example2)
 example2.sets <- apriori(example2.trans, parameter=list(support=1/length(example2.trans),  maxlen=4, minlen=2, target="frequent itemsets"))
 example2.sets@quality$CrossSupRatio <- interestMeasure(example2.sets, "crossSupportRatio", example2.trans, reuse=TRUE)
 example2.sets@quality$lift <- interestMeasure(example2.sets, "lift", example2.trans, reuse=TRUE)
-inspect(example2.sets) 
+calculs <- inspect(example2.sets) 
 
 
 
@@ -182,8 +182,9 @@ mdr_profile <- function (data, index){
     z[which(z[,i]==FALSE), i] <- as.character("") #si sensible, colle un espace blanc dans la cellule
     z[is.na(z[,i]), i] <- as.character("") #ceux qui n'ont pas ?t? test?es, colle un espace blanc
     profile <- paste(profile, z[,i], sep = " ") #colle tous les cols d'ATB ensemble pour avoir une chaine de caracs de tous les ATB pour lesquels chaque isolat (chaque ligne) est resistant
+    profile <- trimws(profile, which="both")
   }
-  profile <- trimws(profile, which="both") #suppr les espaces blancs
+  #profile <- trimws(profile, which="both") #suppr les espaces blancs
   mdr_profile[,1] <- profile #stocker les profils de resistance
   
   mdr_profile #sortie
@@ -255,3 +256,9 @@ rand_MDRProfiles$db <- as.factor(rand_MDRProfiles$db)
 
 #à faire pour i de 1 à 100
 unique(mdr_profile(rand_matrix_logic[[i]],1:4))
+
+
+
+
+#test de trimws
+
